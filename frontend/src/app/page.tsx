@@ -3,18 +3,28 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { HeroDisplay } from '@/components/HeroDisplay';
+import { LeagueBadge } from '@/components/LeagueBadge';
 import { NavBar } from '@/components/NavBar';
 import Link from 'next/link';
 
 export default function HubPage() {
   const { user, loading } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [rewards, setRewards] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       api.getUser().then(setProfile).catch(console.error);
+      api.getSeasonRewards().then(setRewards).catch(() => {});
     }
   }, [user]);
+
+  async function handleClaim() {
+    await api.claimRewards();
+    setRewards([]);
+    const p = await api.getUser();
+    setProfile(p);
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
@@ -30,9 +40,24 @@ export default function HubPage() {
         </div>
       </div>
 
-      <div className="text-center text-gray-400 text-sm mb-2">
-        Elo {profile?.elo || 1000} | {profile?.trophies || 0} Trophees
-      </div>
+      {/* Rewards banner */}
+      {rewards.length > 0 && (
+        <button
+          onClick={handleClaim}
+          className="w-full bg-purple-700 hover:bg-purple-600 rounded-lg p-3 mb-3 text-center animate-pulse"
+        >
+          💎 {rewards.reduce((s: number, r: any) => s + r.gemReward, 0)} $GEM a recuperer !
+        </button>
+      )}
+
+      {/* League badge */}
+      {profile && (
+        <LeagueBadge
+          league={profile.league}
+          trophies={profile.trophies}
+          nextLeagueAt={profile.nextLeagueAt}
+        />
+      )}
 
       <HeroDisplay items={profile?.equippedItems || []} />
 

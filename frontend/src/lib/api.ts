@@ -49,5 +49,10 @@ export const api = {
     request<any>('/api/inventory/unequip', {
       method: 'POST', body: JSON.stringify({ itemId }),
     }),
-  getLeaderboard: () => request<any[]>('/api/user/leaderboard'),
+  getLeaderboard: (league?: string) =>
+    request<any[]>(`/api/user/leaderboard${league ? `?league=${league}` : ''}`),
+  getBattleHistory: () => request<any[]>('/api/battle/history'),
+  getSeasonInfo: () => request<any>('/api/season/current'),
+  getSeasonRewards: () => request<any[]>('/api/season/rewards'),
+  claimRewards: () => request<any>('/api/season/claim', { method: 'POST' }),
 };
