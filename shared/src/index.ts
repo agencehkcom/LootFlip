@@ -4,3 +4,4 @@ export * from './types/battle';
 export * from './types/api';
 export * from './types/socket';
 export * from './constants/game';
+export * from './utils/combat';
