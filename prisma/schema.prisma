@@ -35,6 +35,19 @@ enum BattleMode {
   TUTORIAL
 }
 
+enum League {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
+  LEGEND
+}
+
+enum SeasonStatus {
+  ACTIVE
+  COMPLETED
+}
+
 model User {
   id          String   @id @default(uuid())
   telegramId  String   @unique
@@ -44,13 +57,15 @@ model User {
   trophies    Int      @default(0)
   goldBalance Int      @default(0)
   gemBalance  Int      @default(0)
+  league      League   @default(BRONZE)
   createdAt   DateTime @default(now())
 
-  items      Item[]
-  battlesAs1 Battle[] @relation("player1")
-  battlesAs2 Battle[] @relation("player2")
-  battlesWon Battle[] @relation("winner")
-  chestState ChestState?
+  items         Item[]
+  battlesAs1    Battle[]       @relation("player1")
+  battlesAs2    Battle[]       @relation("player2")
+  battlesWon    Battle[]       @relation("winner")
+  chestState    ChestState?
+  seasonRewards SeasonReward[]
 }
 
 model Item {
@@ -81,9 +96,11 @@ model Battle {
   player2Id String
   winnerId  String?
   mode      BattleMode
-  goldStake Int        @default(0)
+  goldStake  Int        @default(0)
+  eloChange  Int        @default(0)
+  isBotMatch Boolean    @default(false)
   roundsData Json
-  createdAt DateTime   @default(now())
+  createdAt  DateTime   @default(now())
 
   player1 User  @relation("player1", fields: [player1Id], references: [id])
   player2 User  @relation("player2", fields: [player2Id], references: [id])
@@ -91,4 +108,31 @@ model Battle {
 
   @@index([player1Id])
   @@index([player2Id])
+}
+
+model Season {
+  id        String       @id @default(uuid())
+  weekStart DateTime
+  weekEnd   DateTime
+  status    SeasonStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+
+  rewards SeasonReward[]
+
+  @@unique([weekStart])
+}
+
+model SeasonReward {
+  id        String    @id @default(uuid())
+  seasonId  String
+  season    Season    @relation(fields: [seasonId], references: [id])
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  league    League
+  rank      Int
+  gemReward Int
+  claimedAt DateTime?
+
+  @@unique([seasonId, userId])
+  @@index([userId])
 }

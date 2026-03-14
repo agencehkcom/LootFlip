@@ -3,5 +3,7 @@ export * from './types/user';
 export * from './types/battle';
 export * from './types/api';
 export * from './types/socket';
+export * from './types/league';
 export * from './constants/game';
 export * from './utils/combat';
+export * from './utils/elo';
