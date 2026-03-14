@@ -1,0 +1,17 @@
+{
+  "name": "lootflip-arena",
+  "private": true,
+  "workspaces": ["shared", "backend", "frontend"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=shared && npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm run test --workspace=shared && npm run test --workspace=backend",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
