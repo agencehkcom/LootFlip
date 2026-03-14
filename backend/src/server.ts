@@ -8,6 +8,7 @@ import { userRouter } from './modules/user/user.routes';
 import { chestRouter } from './modules/chest/chest.routes';
 import { itemRouter } from './modules/item/item.routes';
 import { battleRouter } from './modules/battle/battle.routes';
+import { seasonRouter } from './modules/season/season.routes';
 import { authMiddleware } from './middleware/auth';
 import { rateLimit } from './middleware/rateLimit';
 import { setupSocket } from './socket';
@@ -29,6 +30,7 @@ app.use('/api/user', authMiddleware, userRouter);
 app.use('/api/chest', authMiddleware, rateLimit(10, 60), chestRouter);
 app.use('/api/inventory', authMiddleware, itemRouter);
 app.use('/api/battle', authMiddleware, rateLimit(30, 60), battleRouter);
+app.use('/api/season', authMiddleware, seasonRouter);
 
 // Socket.io
 setupSocket(io);

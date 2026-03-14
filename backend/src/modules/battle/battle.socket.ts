@@ -1,6 +1,9 @@
 import { Server } from 'socket.io';
 import { PrismaClient } from '@prisma/client';
-import { Action, GAME, EquippedItem } from '@lootflip/shared';
+import {
+  Action, GAME, EquippedItem,
+  getLeagueFromTrophies, LEAGUE_GOLD_STAKES,
+} from '@lootflip/shared';
 import {
   addToQueue, removeFromQueue, getQueue, findMatch,
 } from './matchmaking.service';
@@ -9,12 +12,15 @@ import {
   submitAction, getRoundActions, clearRoundActions,
   resolveAndApply, persistBattleResult,
 } from './battle.service';
+import { generateBotProfile, botChooseAction, getBotResponseDelay } from './bot.service';
 
 const prisma = new PrismaClient();
 
 const socketToUser = new Map<string, string>();
 const userToSocket = new Map<string, string>();
 const userToBattle = new Map<string, string>();
+const battleBotState = new Map<string, { previousAction: Action | null }>();
+const matchmakingTimers = new Map<string, NodeJS.Timeout>();
 
 export function setupBattleSocket(io: Server) {
   io.on('connection', (socket) => {
@@ -24,19 +30,23 @@ export function setupBattleSocket(io: Server) {
     socketToUser.set(socket.id, userId);
     userToSocket.set(userId, socket.id);
 
-    socket.on('matchmaking:join', async (data: { goldStake: number }) => {
+    socket.on('matchmaking:join', async () => {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: { items: { where: { isEquipped: true } } },
       });
       if (!user) return;
 
+      const league = getLeagueFromTrophies(user.trophies);
+      const goldStake = user.goldBalance >= LEAGUE_GOLD_STAKES[league]
+        ? LEAGUE_GOLD_STAKES[league] : 0;
+
       const equipment: EquippedItem[] = user.items.map(i => ({
         type: i.type, trait: i.trait, rarity: i.rarity, bonusDamage: i.bonusDamage,
       }));
 
       const entry = {
-        userId, elo: user.elo, goldStake: data.goldStake,
+        userId, elo: user.elo, goldStake,
         socketId: socket.id, joinedAt: Date.now(),
       };
 
@@ -44,51 +54,23 @@ export function setupBattleSocket(io: Server) {
 
       if (match) {
         removeFromQueue(match.userId);
-
-        const opponent = await prisma.user.findUnique({
-          where: { id: match.userId },
-          include: { items: { where: { isEquipped: true } } },
-        });
-        if (!opponent) return;
-
-        const opEquipment: EquippedItem[] = opponent.items.map(i => ({
-          type: i.type, trait: i.trait, rarity: i.rarity, bonusDamage: i.bonusDamage,
-        }));
-
-        const battle = await createBattle(
-          userId, equipment,
-          match.userId, opEquipment,
-          data.goldStake
-        );
-
-        userToBattle.set(userId, battle.id);
-        userToBattle.set(match.userId, battle.id);
-
-        socket.join(battle.id);
-        const matchSocket = io.sockets.sockets.get(match.socketId);
-        matchSocket?.join(battle.id);
-
-        socket.emit('matchmaking:found', {
-          battleId: battle.id,
-          opponent: { username: opponent.username, elo: opponent.elo, equipment: opEquipment },
-        });
-        matchSocket?.emit('matchmaking:found', {
-          battleId: battle.id,
-          opponent: { username: user.username, elo: user.elo, equipment },
-        });
-
-        io.to(battle.id).emit('round:start', {
-          round: 1, timeLimit: GAME.ROUND_TIMER_SECONDS,
-        });
-
-        startRoundTimer(io, battle.id);
+        await startPvPBattle(io, socket, userId, user, equipment, match, goldStake);
       } else {
         addToQueue(entry);
+        // Start bot fallback timer
+        const timer = setTimeout(async () => {
+          const removed = removeFromQueue(userId);
+          if (removed) {
+            await startBotBattle(io, socket, userId, user, equipment, goldStake);
+          }
+        }, GAME.BOT_FALLBACK_TIMEOUT_MS);
+        matchmakingTimers.set(userId, timer);
       }
     });
 
     socket.on('matchmaking:cancel', () => {
       removeFromQueue(userId);
+      clearMatchmakingTimer(userId);
     });
 
     socket.on('round:action', async (data: { action: Action; powerIndex: number | null }) => {
@@ -99,13 +81,35 @@ export function setupBattleSocket(io: Server) {
         action: data.action, powerIndex: data.powerIndex,
       });
 
-      if (bothReady) {
+      // If bot match, schedule bot action
+      const botState = battleBotState.get(battleId);
+      if (botState) {
+        const battle = await getBattle(battleId);
+        if (!battle) return;
+
+        const botPlayer = battle.player2;
+        const delay = getBotResponseDelay();
+
+        setTimeout(async () => {
+          const botAction = botChooseAction(
+            botState.previousAction,
+            botPlayer.powersUsed,
+            botPlayer.equipment,
+            botPlayer.hp
+          );
+          botState.previousAction = botAction.action;
+
+          await submitAction(battleId, botPlayer.userId, botAction);
+          await processRound(io, battleId);
+        }, delay);
+      } else if (bothReady) {
         await processRound(io, battleId);
       }
     });
 
     socket.on('disconnect', () => {
       removeFromQueue(userId);
+      clearMatchmakingTimer(userId);
       socketToUser.delete(socket.id);
       userToSocket.delete(userId);
 
@@ -115,6 +119,90 @@ export function setupBattleSocket(io: Server) {
       }
     });
   });
+}
+
+async function startPvPBattle(
+  io: Server, socket: any,
+  userId: string, user: any, equipment: EquippedItem[],
+  match: any, goldStake: number
+) {
+  const opponent = await prisma.user.findUnique({
+    where: { id: match.userId },
+    include: { items: { where: { isEquipped: true } } },
+  });
+  if (!opponent) return;
+
+  const opEquipment: EquippedItem[] = opponent.items.map(i => ({
+    type: i.type, trait: i.trait, rarity: i.rarity, bonusDamage: i.bonusDamage,
+  }));
+
+  const battle = await createBattle(
+    userId, equipment,
+    match.userId, opEquipment,
+    goldStake
+  );
+
+  userToBattle.set(userId, battle.id);
+  userToBattle.set(match.userId, battle.id);
+
+  socket.join(battle.id);
+  const matchSocket = io.sockets.sockets.get(match.socketId);
+  matchSocket?.join(battle.id);
+
+  clearMatchmakingTimer(match.userId);
+
+  const league = getLeagueFromTrophies(user.trophies);
+
+  socket.emit('matchmaking:found', {
+    battleId: battle.id,
+    opponent: { username: opponent.username, elo: opponent.elo, equipment: opEquipment },
+    goldStake, league, isBotMatch: false,
+  });
+  matchSocket?.emit('matchmaking:found', {
+    battleId: battle.id,
+    opponent: { username: user.username, elo: user.elo, equipment },
+    goldStake, league: getLeagueFromTrophies(opponent.trophies), isBotMatch: false,
+  });
+
+  io.to(battle.id).emit('round:start', {
+    round: 1, timeLimit: GAME.ROUND_TIMER_SECONDS,
+  });
+
+  startRoundTimer(io, battle.id);
+}
+
+async function startBotBattle(
+  io: Server, socket: any,
+  userId: string, user: any, equipment: EquippedItem[],
+  goldStake: number
+) {
+  const bot = generateBotProfile(user.elo);
+  const botGoldStake = Math.floor(goldStake * GAME.BOT_GOLD_MULTIPLIER);
+
+  const battle = await createBattle(
+    userId, equipment,
+    bot.odId, bot.equipment,
+    botGoldStake
+  );
+
+  userToBattle.set(userId, battle.id);
+  battleBotState.set(battle.id, { previousAction: null });
+
+  socket.join(battle.id);
+
+  const league = getLeagueFromTrophies(user.trophies);
+
+  socket.emit('matchmaking:found', {
+    battleId: battle.id,
+    opponent: { username: bot.username, elo: bot.elo, equipment: bot.equipment },
+    goldStake: botGoldStake, league, isBotMatch: true,
+  });
+
+  io.to(battle.id).emit('round:start', {
+    round: 1, timeLimit: GAME.ROUND_TIMER_SECONDS,
+  });
+
+  // No round timer needed for bot — bot responds after player
 }
 
 async function processRound(io: Server, battleId: string) {
@@ -142,23 +230,35 @@ async function processRound(io: Server, battleId: string) {
   await clearRoundActions(battleId);
 
   if (isOver) {
-    const { winnerId } = await persistBattleResult(battle, []);
+    const isBotMatch = battleBotState.has(battleId);
+    const { winnerId, eloChange } = await persistBattleResult(
+      battle, [], isBotMatch,
+      undefined, undefined
+    );
+
     io.to(battleId).emit('battle:end', {
       battleId,
       winnerId,
       p1FinalHp: battle.player1.hp,
       p2FinalHp: battle.player2.hp,
       rounds: [],
-      rewards: { gold: battle.goldStake, trophies: GAME.TROPHIES_WIN },
+      rewards: { gold: battle.goldStake, trophies: isBotMatch ? 0 : Math.abs(eloChange) },
+      eloChange: isBotMatch ? 0 : eloChange,
+      isBotMatch,
     });
+
     userToBattle.delete(battle.player1.userId);
     userToBattle.delete(battle.player2.userId);
+    battleBotState.delete(battleId);
   } else {
     await saveBattle(battle);
     io.to(battleId).emit('round:start', {
       round: battle.currentRound, timeLimit: GAME.ROUND_TIMER_SECONDS,
     });
-    startRoundTimer(io, battleId);
+
+    if (!battleBotState.has(battleId)) {
+      startRoundTimer(io, battleId);
+    }
   }
 }
 
@@ -177,6 +277,14 @@ function startRoundTimer(io: Server, battleId: string) {
       await processRound(io, battleId);
     }
   }, GAME.ROUND_TIMER_SECONDS * 1000);
+}
+
+function clearMatchmakingTimer(userId: string) {
+  const timer = matchmakingTimers.get(userId);
+  if (timer) {
+    clearTimeout(timer);
+    matchmakingTimers.delete(userId);
+  }
 }
 
 function randomAction(): { action: Action; powerIndex: null } {

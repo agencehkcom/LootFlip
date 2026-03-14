@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { calculateCurrentStock } from '../chest/chest.service';
+import { getNextLeagueThreshold } from '@lootflip/shared';
 
 const prisma = new PrismaClient();
 
@@ -30,6 +31,8 @@ export async function getUserProfile(userId: string) {
     elo: user.elo,
     trophies: user.trophies,
     goldBalance: user.goldBalance,
+    league: user.league,
+    nextLeagueAt: getNextLeagueThreshold(user.league as any),
     gemBalance: user.gemBalance,
     createdAt: user.createdAt.toISOString(),
     equippedItems: user.items,

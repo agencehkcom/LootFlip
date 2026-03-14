@@ -15,11 +15,15 @@ userRouter.get('/', async (req, res) => {
   }
 });
 
-userRouter.get('/leaderboard', async (_req, res) => {
+userRouter.get('/leaderboard', async (req, res) => {
+  const league = req.query.league as string | undefined;
+  const where = league ? { league: league as any } : {};
+
   const top = await prisma.user.findMany({
+    where,
     orderBy: { trophies: 'desc' },
     take: 50,
-    select: { id: true, username: true, displayName: true, elo: true, trophies: true },
+    select: { id: true, username: true, displayName: true, elo: true, trophies: true, league: true },
   });
   res.json({ success: true, data: top });
 });

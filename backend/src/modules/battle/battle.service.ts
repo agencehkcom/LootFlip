@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import {
   BattleState, RoundAction, EquippedItem,
   GAME, resolveRound, determineWinner,
+  calculateEloChange, getLeagueFromTrophies,
 } from '@lootflip/shared';
 import { v4 as uuid } from 'uuid';
 
@@ -103,48 +104,99 @@ export function resolveAndApply(
 
 export async function persistBattleResult(
   battle: BattleState,
-  roundsData: any[]
+  roundsData: any[],
+  isBotMatch: boolean = false,
+  p1Elo?: number,
+  p2Elo?: number
 ) {
   const winner = determineWinner(battle.player1.hp, battle.player2.hp);
   const winnerId = winner === 'p1' ? battle.player1.userId
     : winner === 'p2' ? battle.player2.userId
     : null;
 
-  await prisma.battle.create({
-    data: {
-      id: battle.id,
-      player1Id: battle.player1.userId,
-      player2Id: battle.player2.userId,
-      winnerId,
-      mode: 'RANKED',
-      goldStake: battle.goldStake,
-      roundsData: roundsData,
-    },
-  });
+  // Calculate Elo change
+  const elo1 = p1Elo ?? GAME.STARTING_ELO;
+  const elo2 = p2Elo ?? GAME.STARTING_ELO;
+  const p1Result = winner === 'p1' ? 'win' as const : winner === 'p2' ? 'loss' as const : 'draw' as const;
+  const eloChange = isBotMatch ? 0 : calculateEloChange(elo1, elo2, p1Result);
 
-  if (winnerId) {
-    const loserId = winnerId === battle.player1.userId
-      ? battle.player2.userId : battle.player1.userId;
+  // Only persist if not a bot match (bot has no real userId)
+  if (!isBotMatch) {
+    await prisma.battle.create({
+      data: {
+        id: battle.id,
+        player1Id: battle.player1.userId,
+        player2Id: battle.player2.userId,
+        winnerId,
+        mode: 'RANKED',
+        goldStake: battle.goldStake,
+        eloChange,
+        isBotMatch: false,
+        roundsData: roundsData,
+      },
+    });
+  }
 
-    await prisma.$transaction([
+  // Update players
+  const goldMultiplier = isBotMatch ? GAME.BOT_GOLD_MULTIPLIER : 1;
+
+  if (winner === 'p1') {
+    const updates: any[] = [
       prisma.user.update({
-        where: { id: winnerId },
+        where: { id: battle.player1.userId },
         data: {
-          trophies: { increment: GAME.TROPHIES_WIN },
-          goldBalance: { increment: battle.goldStake },
+          elo: { increment: isBotMatch ? 0 : eloChange },
+          trophies: isBotMatch ? undefined : { increment: Math.max(0, eloChange) },
+          goldBalance: { increment: Math.floor(battle.goldStake * goldMultiplier) },
+          league: getLeagueFromTrophies(elo1 + (isBotMatch ? 0 : eloChange)),
         },
       }),
+    ];
+    if (!isBotMatch) {
+      updates.push(
+        prisma.user.update({
+          where: { id: battle.player2.userId },
+          data: {
+            elo: { increment: -eloChange },
+            trophies: { decrement: Math.max(0, -(-eloChange)) },
+            goldBalance: { decrement: battle.goldStake },
+            league: getLeagueFromTrophies(elo2 + (-eloChange)),
+          },
+        })
+      );
+    }
+    await prisma.$transaction(updates);
+  } else if (winner === 'p2') {
+    const p2EloChange = isBotMatch ? 0 : calculateEloChange(elo2, elo1, 'win');
+    const updates: any[] = [];
+    if (!isBotMatch) {
+      updates.push(
+        prisma.user.update({
+          where: { id: battle.player2.userId },
+          data: {
+            elo: { increment: p2EloChange },
+            trophies: { increment: Math.max(0, p2EloChange) },
+            goldBalance: { increment: battle.goldStake },
+            league: getLeagueFromTrophies(elo2 + p2EloChange),
+          },
+        })
+      );
+    }
+    updates.push(
       prisma.user.update({
-        where: { id: loserId },
+        where: { id: battle.player1.userId },
         data: {
-          trophies: { decrement: GAME.TROPHIES_LOSE },
-          goldBalance: { decrement: battle.goldStake },
+          elo: { increment: isBotMatch ? 0 : eloChange },
+          trophies: isBotMatch ? undefined : { decrement: Math.max(0, -eloChange) },
+          goldBalance: { decrement: isBotMatch ? Math.floor(battle.goldStake * goldMultiplier) : battle.goldStake },
+          league: getLeagueFromTrophies(elo1 + (isBotMatch ? 0 : eloChange)),
         },
-      }),
-    ]);
+      })
+    );
+    await prisma.$transaction(updates);
   }
 
   await redis.del(`battle:${battle.id}`);
 
-  return { winnerId };
+  return { winnerId, eloChange };
 }
