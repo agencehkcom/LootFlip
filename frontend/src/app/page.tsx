@@ -20,7 +20,7 @@ const QUEST_REWARDS: Record<string, string> = {
 };
 
 export default function HubPage() {
-  const { user, loading, isNewUser } = useAuth();
+  const { user, loading, isNewUser, error: authError } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [rewards, setRewards] = useState<any[]>([]);
   const [quests, setQuests] = useState<any[]>([]);
@@ -62,6 +62,16 @@ export default function HubPage() {
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">Chargement...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
+        <h1 className="text-xl font-bold mb-4">Loot Flip Arena</h1>
+        {authError && <p className="text-red-400 text-sm mb-2">Erreur: {authError}</p>}
+        <p className="text-gray-400 text-sm text-center">Ouvre ce jeu depuis Telegram pour te connecter automatiquement.</p>
+      </div>
+    );
   }
 
   return (
