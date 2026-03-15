@@ -9,7 +9,7 @@ COPY shared/package.json shared/
 COPY backend/package.json backend/
 COPY prisma/ prisma/
 
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY shared/ shared/
 RUN npm run build --workspace=shared
