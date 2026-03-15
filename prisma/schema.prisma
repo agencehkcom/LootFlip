@@ -41,6 +41,7 @@ enum League {
   GOLD
   DIAMOND
   LEGEND
+  MYTHIC
 }
 
 enum SeasonStatus {
@@ -162,7 +163,8 @@ model User {
   league      League   @default(BRONZE)
   createdAt   DateTime @default(now())
 
-  potionCount Int      @default(0)
+  potionCount    Int      @default(0)
+  prestigeLevel  Int      @default(0)
 
   items          Item[]
   battlesAs1     Battle[]        @relation("player1")
@@ -190,6 +192,10 @@ model User {
   stakePositions       StakePosition[]
   governanceVotes      GovernanceVote[]
   governanceProposals  GovernanceProposal[]
+  // Phase 6 — Endgame
+  raidAttempts         RaidAttempt[]
+  raidRewards          RaidReward[]
+  eventParticipations  EventParticipation[]
 }
 
 model Item {
@@ -384,6 +390,7 @@ model Guild {
   warsAsChallenger GuildWar[]  @relation("WarChallenger")
   warsAsDefender   GuildWar[]  @relation("WarDefender")
   guildItems       Item[]      @relation("GuildItems")
+  raids            Raid[]
 }
 
 model GuildMember {
@@ -585,4 +592,129 @@ model BurnRecord {
   source    BurnSource
   txHash    String?
   createdAt DateTime   @default(now())
+}
+
+// ── Phase 6: Endgame ──
+
+enum RaidDifficulty {
+  NORMAL
+  HEROIC
+  MYTHIC
+}
+
+enum RaidStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+enum BossElement {
+  FIRE
+  ICE
+  THUNDER
+  SHADOW
+  POISON
+  HOLY
+}
+
+enum EventType {
+  DOUBLE_DROP
+  DOUBLE_GOLD
+  BOSS_WORLD
+  FLASH_TOURNAMENT
+  TRAIT_BOOST
+}
+
+enum EventStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+}
+
+model RaidBoss {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String
+  element     BossElement
+  maxHp       Int
+  mechanic    Json
+  raids       Raid[]
+  createdAt   DateTime     @default(now())
+}
+
+model Raid {
+  id         String         @id @default(cuid())
+  guildId    String
+  guild      Guild          @relation(fields: [guildId], references: [id])
+  bossId     String
+  boss       RaidBoss       @relation(fields: [bossId], references: [id])
+  difficulty RaidDifficulty
+  currentHp  Int
+  status     RaidStatus     @default(ACTIVE)
+  startsAt   DateTime       @default(now())
+  endsAt     DateTime
+  createdAt  DateTime       @default(now())
+
+  attempts RaidAttempt[]
+  rewards  RaidReward[]
+
+  @@index([guildId])
+}
+
+model RaidAttempt {
+  id            String   @id @default(cuid())
+  raidId        String
+  raid          Raid     @relation(fields: [raidId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  damageDealt   Int
+  roundsData    Json
+  attemptNumber Int
+  createdAt     DateTime @default(now())
+
+  @@index([raidId])
+  @@index([userId])
+}
+
+model RaidReward {
+  id         String    @id @default(cuid())
+  raidId     String
+  raid       Raid      @relation(fields: [raidId], references: [id])
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  goldReward Int
+  gemReward  Int
+  itemId     String?
+  claimedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([raidId, userId])
+}
+
+model GameEvent {
+  id          String      @id @default(cuid())
+  type        EventType
+  name        String
+  description String
+  config      Json
+  status      EventStatus @default(SCHEDULED)
+  startsAt    DateTime
+  endsAt      DateTime
+  createdAt   DateTime    @default(now())
+
+  participations EventParticipation[]
+}
+
+model EventParticipation {
+  id            String    @id @default(cuid())
+  eventId       String
+  event         GameEvent @relation(fields: [eventId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  score         Int       @default(0)
+  rewardClaimed Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId])
 }

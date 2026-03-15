@@ -11,6 +11,7 @@ export * from './types/craft';
 export * from './types/guild';
 export * from './types/friend';
 export * from './types/token';
+export * from './types/endgame';
 export * from './constants/game';
 export * from './utils/combat';
 export * from './utils/elo';

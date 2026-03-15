@@ -19,8 +19,12 @@ describe('league utils', () => {
       expect(getLeagueFromTrophies(1000)).toBe(League.GOLD);
     });
 
-    it('2000+ trophies = LEGEND', () => {
+    it('2000+ trophies = LEGEND (no prestige)', () => {
       expect(getLeagueFromTrophies(2500)).toBe(League.LEGEND);
+    });
+
+    it('2500+ trophies with prestige = MYTHIC', () => {
+      expect(getLeagueFromTrophies(2500, 1)).toBe(League.MYTHIC);
     });
   });
 
@@ -29,12 +33,26 @@ describe('league utils', () => {
       expect(getNextLeagueThreshold(League.BRONZE)).toBe(500);
     });
 
-    it('LEGEND has no next', () => {
-      expect(getNextLeagueThreshold(League.LEGEND)).toBeNull();
+    it('LEGEND next is 2500', () => {
+      expect(getNextLeagueThreshold(League.LEGEND)).toBe(2500);
+    });
+
+    it('MYTHIC has no next', () => {
+      expect(getNextLeagueThreshold(League.MYTHIC)).toBeNull();
     });
   });
 
   describe('getSeasonReward', () => {
+    it('Mythic #1 = 1500', () => {
+      expect(getSeasonReward(League.MYTHIC, 1)).toBe(1500);
+    });
+
+    it('Mythic #50 >= Legend #1', () => {
+      expect(getSeasonReward(League.MYTHIC, 50)).toBeGreaterThanOrEqual(
+        getSeasonReward(League.LEGEND, 1)
+      );
+    });
+
     it('Legend #1 = 500', () => {
       expect(getSeasonReward(League.LEGEND, 1)).toBe(500);
     });

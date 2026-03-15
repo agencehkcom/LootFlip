@@ -13,6 +13,7 @@ const LEAGUE_RARITIES: Record<League, Rarity[]> = {
   [League.GOLD]: [Rarity.RARE, Rarity.RARE, Rarity.EPIC],
   [League.DIAMOND]: [Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY],
   [League.LEGEND]: [Rarity.EPIC, Rarity.LEGENDARY, Rarity.LEGENDARY],
+  [League.MYTHIC]: [Rarity.LEGENDARY, Rarity.LEGENDARY, Rarity.MYTHIC],
 };
 
 const RARITY_BONUS: Record<Rarity, number> = {

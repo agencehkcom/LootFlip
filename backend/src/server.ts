@@ -20,6 +20,9 @@ import { walletRouter } from './modules/wallet/wallet.routes';
 import { tokenRouter } from './modules/token/token.routes';
 import { stakingRouter } from './modules/staking/staking.routes';
 import { governanceRouter } from './modules/governance/governance.routes';
+import { raidRouter } from './modules/raid/raid.routes';
+import { prestigeRouter } from './modules/prestige/prestige.routes';
+import { eventRouter } from './modules/event/event.routes';
 import { authMiddleware } from './middleware/auth';
 import { rateLimit } from './middleware/rateLimit';
 import { setupSocket } from './socket';
@@ -27,6 +30,8 @@ import { seedShopItems, seedCraftRecipes, updateDynamicPrices, expireListings, e
 import { resolveWars } from './modules/tournament/tournament.service';
 import { expireChallenges } from './modules/challenge/challenge.service';
 import { resolveExpiredProposals } from './modules/governance/governance.service';
+import { seedBosses, resolveExpiredRaids } from './modules/raid/raid.service';
+import { seedEvents } from './modules/event/event.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -57,6 +62,9 @@ app.use('/api/wallet', authMiddleware, walletRouter);
 app.use('/api/token', authMiddleware, tokenRouter);
 app.use('/api/staking', authMiddleware, stakingRouter);
 app.use('/api/governance', authMiddleware, governanceRouter);
+app.use('/api/raid', authMiddleware, raidRouter);
+app.use('/api/prestige', authMiddleware, prestigeRouter);
+app.use('/api/events', authMiddleware, eventRouter);
 
 // Socket.io
 setupSocket(io);
@@ -65,6 +73,8 @@ setupSocket(io);
 async function bootstrap() {
   await seedShopItems();
   await seedCraftRecipes();
+  await seedBosses();
+  await seedEvents();
 
   // Update dynamic prices every hour
   setInterval(async () => {
@@ -74,6 +84,7 @@ async function bootstrap() {
     await resolveWars();
     await expireChallenges();
     await resolveExpiredProposals();
+    await resolveExpiredRaids();
   }, 3_600_000);
 }
 

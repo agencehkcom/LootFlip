@@ -189,4 +189,26 @@ export const api = {
   getProposals: (status?: string) =>
     request<any[]>(`/api/governance/proposals${status ? `?status=${status}` : ''}`),
   getProposal: (id: string) => request<any>(`/api/governance/proposals/${id}`),
+
+  // Phase 6 — Raid
+  getRaidBosses: () => request<any[]>('/api/raid/bosses'),
+  startRaid: (guildId: string, bossId: string, difficulty: string) =>
+    request<any>('/api/raid/start', { method: 'POST', body: JSON.stringify({ guildId, bossId, difficulty }) }),
+  getActiveRaid: (guildId: string) => request<any>(`/api/raid/active?guildId=${guildId}`),
+  getRaid: (id: string) => request<any>(`/api/raid/${id}`),
+  attemptRaid: (raidId: string) =>
+    request<any>('/api/raid/attempt', { method: 'POST', body: JSON.stringify({ raidId }) }),
+  claimRaidReward: (raidId: string) =>
+    request<any>(`/api/raid/${raidId}/claim`, { method: 'POST' }),
+
+  // Phase 6 — Prestige
+  getPrestigeInfo: () => request<any>('/api/prestige/info'),
+  activatePrestige: () => request<any>('/api/prestige/reset', { method: 'POST' }),
+
+  // Phase 6 — Events
+  getActiveEvents: () => request<any[]>('/api/events/active'),
+  getEventHistory: () => request<any[]>('/api/events/history'),
+  getEvent: (id: string) => request<any>(`/api/events/${id}`),
+  participateEvent: (id: string) => request<any>(`/api/events/${id}/participate`, { method: 'POST' }),
+  claimEventReward: (id: string) => request<any>(`/api/events/${id}/claim`, { method: 'POST' }),
 };

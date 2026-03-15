@@ -4,6 +4,7 @@ export enum League {
   GOLD = 'GOLD',
   DIAMOND = 'DIAMOND',
   LEGEND = 'LEGEND',
+  MYTHIC = 'MYTHIC',
 }
 
 export const LEAGUE_THRESHOLDS: Record<League, number> = {
@@ -12,6 +13,7 @@ export const LEAGUE_THRESHOLDS: Record<League, number> = {
   [League.GOLD]: 1000,
   [League.DIAMOND]: 1500,
   [League.LEGEND]: 2000,
+  [League.MYTHIC]: 2500,
 };
 
 export const LEAGUE_GOLD_STAKES: Record<League, number> = {
@@ -20,6 +22,7 @@ export const LEAGUE_GOLD_STAKES: Record<League, number> = {
   [League.GOLD]: 200,
   [League.DIAMOND]: 500,
   [League.LEGEND]: 1000,
+  [League.MYTHIC]: 2000,
 };
 
 export const LEAGUE_ORDER: League[] = [
@@ -28,6 +31,7 @@ export const LEAGUE_ORDER: League[] = [
   League.GOLD,
   League.DIAMOND,
   League.LEGEND,
+  League.MYTHIC,
 ];
 
 export const SEASON_REWARDS: Record<League, Record<string, number>> = {
@@ -36,10 +40,15 @@ export const SEASON_REWARDS: Record<League, Record<string, number>> = {
   [League.GOLD]:    { top1: 60, top5: 40, top20: 25, top50: 20 },
   [League.DIAMOND]: { top1: 150, top5: 100, top20: 65, top50: 60 },
   [League.LEGEND]:  { top1: 500, top5: 350, top20: 200, top50: 150 },
+  [League.MYTHIC]:  { top1: 1500, top5: 1000, top20: 700, top50: 500 },
 };
 
-export function getLeagueFromTrophies(trophies: number): League {
-  for (let i = LEAGUE_ORDER.length - 1; i >= 0; i--) {
+export function getLeagueFromTrophies(trophies: number, prestigeLevel: number = 0): League {
+  // Mythic requires prestige >= 1
+  if (trophies >= LEAGUE_THRESHOLDS[League.MYTHIC] && prestigeLevel >= 1) {
+    return League.MYTHIC;
+  }
+  for (let i = LEAGUE_ORDER.length - 2; i >= 0; i--) {
     if (trophies >= LEAGUE_THRESHOLDS[LEAGUE_ORDER[i]]) {
       return LEAGUE_ORDER[i];
     }
