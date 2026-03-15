@@ -211,4 +211,18 @@ export const api = {
   getEvent: (id: string) => request<any>(`/api/events/${id}`),
   participateEvent: (id: string) => request<any>(`/api/events/${id}/participate`, { method: 'POST' }),
   claimEventReward: (id: string) => request<any>(`/api/events/${id}/claim`, { method: 'POST' }),
+
+  // Phase 7 — Quests
+  getDailyQuests: () => request<any[]>('/api/quests'),
+  claimQuestReward: (questId: string) =>
+    request<any>(`/api/quests/claim/${questId}`, { method: 'POST' }),
+
+  // Phase 7 — Referral
+  getReferralInfo: () => request<any>('/api/referral/info'),
+  claimAirdrop: () => request<any>('/api/referral/airdrop', { method: 'POST' }),
+
+  // Phase 7 — Analytics
+  trackEvent: (eventType: string, metadata?: Record<string, unknown>) =>
+    request<any>('/api/analytics/track', { method: 'POST', body: JSON.stringify({ eventType, metadata }) }),
+  getAnalyticsStats: () => request<any>('/api/analytics/stats'),
 };

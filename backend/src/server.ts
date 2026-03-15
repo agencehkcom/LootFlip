@@ -23,6 +23,9 @@ import { governanceRouter } from './modules/governance/governance.routes';
 import { raidRouter } from './modules/raid/raid.routes';
 import { prestigeRouter } from './modules/prestige/prestige.routes';
 import { eventRouter } from './modules/event/event.routes';
+import { questRouter } from './modules/quest/quest.routes';
+import { referralRouter } from './modules/referral/referral.routes';
+import { analyticsRouter } from './modules/analytics/analytics.routes';
 import { authMiddleware } from './middleware/auth';
 import { rateLimit } from './middleware/rateLimit';
 import { setupSocket } from './socket';
@@ -65,6 +68,9 @@ app.use('/api/governance', authMiddleware, governanceRouter);
 app.use('/api/raid', authMiddleware, raidRouter);
 app.use('/api/prestige', authMiddleware, prestigeRouter);
 app.use('/api/events', authMiddleware, eventRouter);
+app.use('/api/quests', authMiddleware, questRouter);
+app.use('/api/referral', authMiddleware, referralRouter);
+app.use('/api/analytics', authMiddleware, analyticsRouter);
 
 // Socket.io
 setupSocket(io);

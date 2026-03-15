@@ -164,7 +164,11 @@ model User {
   createdAt   DateTime @default(now())
 
   potionCount    Int      @default(0)
-  prestigeLevel  Int      @default(0)
+  prestigeLevel        Int      @default(0)
+  referralCode         String?  @unique @default(cuid())
+  referredBy           String?
+  hasCompletedTutorial Boolean  @default(false)
+  lastLoginAt          DateTime @default(now())
 
   items          Item[]
   battlesAs1     Battle[]        @relation("player1")
@@ -196,6 +200,11 @@ model User {
   raidAttempts         RaidAttempt[]
   raidRewards          RaidReward[]
   eventParticipations  EventParticipation[]
+  // Phase 7 — Launch
+  dailyQuests          DailyQuest[]
+  referralsMade        Referral[]         @relation("Referrer")
+  referralReceived     Referral?          @relation("Referred")
+  analyticsEvents      AnalyticsEvent[]
 }
 
 model Item {
@@ -717,4 +726,50 @@ model EventParticipation {
 
   @@unique([eventId, userId])
   @@index([eventId])
+}
+
+// ── Phase 7: Launch ──
+
+enum QuestType {
+  LOGIN
+  FIRST_WIN
+  THREE_BATTLES
+}
+
+model DailyQuest {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  date          DateTime  @db.Date
+  questType     QuestType
+  completed     Boolean   @default(false)
+  rewardClaimed Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@unique([userId, date, questType])
+  @@index([userId, date])
+}
+
+model Referral {
+  id           String   @id @default(cuid())
+  referrerId   String
+  referrer     User     @relation("Referrer", fields: [referrerId], references: [id])
+  referredId   String   @unique
+  referred     User     @relation("Referred", fields: [referredId], references: [id])
+  bonusClaimed Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([referrerId])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  eventType String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([userId])
 }
