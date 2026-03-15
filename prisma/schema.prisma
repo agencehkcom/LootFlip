@@ -211,6 +211,8 @@ model Item {
   id          String    @id @default(uuid())
   ownerId     String
   owner       User      @relation(fields: [ownerId], references: [id])
+  name        String    @default("")
+  description String    @default("")
   type        ItemType
   trait       ItemTrait
   rarity      Rarity

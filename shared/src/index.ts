@@ -13,6 +13,7 @@ export * from './types/friend';
 export * from './types/token';
 export * from './types/endgame';
 export * from './types/launch';
+export * from './data/items';
 export * from './constants/game';
 export * from './utils/combat';
 export * from './utils/elo';

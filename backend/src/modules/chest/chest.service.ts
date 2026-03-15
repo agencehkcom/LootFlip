@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import {
   Rarity, ItemType, ItemTrait,
   DROP_RATES, PREMIUM_DROP_RATES, RARITY_BONUS_DAMAGE, GAME,
+  getItemTemplate,
 } from '@lootflip/shared';
 
 const prisma = new PrismaClient();
@@ -77,9 +78,11 @@ export async function openChest(userId: string, isPremium: boolean = false) {
     ? new Date(Date.now() + regenIntervalMs)
     : nextFreeAt;
 
+  const template = getItemTemplate(trait, type, rarity);
+
   const [item] = await prisma.$transaction([
     prisma.item.create({
-      data: { ownerId: userId, type, trait, rarity, bonusDamage },
+      data: { ownerId: userId, name: template.name, description: template.description, type, trait, rarity, bonusDamage },
     }),
     prisma.chestState.update({
       where: { userId },

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { GAME, Rarity, RARITY_BONUS_DAMAGE, ItemType, ItemTrait } from '@lootflip/shared';
+import { GAME, Rarity, RARITY_BONUS_DAMAGE, ItemType, ItemTrait, getItemTemplate } from '@lootflip/shared';
 
 const prisma = new PrismaClient();
 
@@ -65,12 +65,17 @@ async function deliverChest(tx: any, userId: string, shopItem: any) {
   const rarity = weightedRandom(dropRates);
   const types = Object.values(ItemType);
   const traits = Object.values(ItemTrait);
+  const type = types[Math.floor(Math.random() * types.length)];
+  const trait = traits[Math.floor(Math.random() * traits.length)];
+  const template = getItemTemplate(trait, type, rarity);
 
   const item = await tx.item.create({
     data: {
       ownerId: userId,
-      type: types[Math.floor(Math.random() * types.length)],
-      trait: traits[Math.floor(Math.random() * traits.length)],
+      name: template.name,
+      description: template.description,
+      type,
+      trait,
       rarity,
       bonusDamage: RARITY_BONUS_DAMAGE[rarity as Rarity],
       tradeableAt: new Date(Date.now() + GAME.MARKET_TRADEABLE_COOLDOWN_HOURS * 3600000),

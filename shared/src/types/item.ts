@@ -24,6 +24,8 @@ export enum Rarity {
 export interface Item {
   id: string;
   ownerId: string;
+  name: string;
+  description: string;
   type: ItemType;
   trait: ItemTrait;
   rarity: Rarity;
