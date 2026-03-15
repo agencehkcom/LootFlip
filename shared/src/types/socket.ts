@@ -8,10 +8,13 @@ export interface ServerToClientEvents {
   'opponent:disconnected': () => void;
   'opponent:reconnected': () => void;
   'shadow:reveal': (data: { possibleActions: Action[] }) => void;
+  'potion:used': (data: { playerId: string; newHp: number }) => void;
+  'potion:failed': (data: { reason: string }) => void;
 }
 
 export interface ClientToServerEvents {
   'matchmaking:join': (data: { goldStake: number }) => void;
   'matchmaking:cancel': () => void;
   'round:action': (data: { action: Action; powerIndex: number | null }) => void;
+  'use_potion': (data: { battleId: string }) => void;
 }

@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { href: '/chest', label: 'Coffres', icon: '🎁' },
-  { href: '/inventory', label: 'Inventaire', icon: '🎒' },
   { href: '/', label: 'Hub', icon: '🏠' },
   { href: '/battle', label: 'Arene', icon: '⚔️' },
-  { href: '/leaderboard', label: 'Classement', icon: '🏆' },
+  { href: '/market', label: 'Marche', icon: '🏪' },
+  { href: '/shop', label: 'Shop', icon: '🛒' },
+  { href: '/inventory', label: 'Sac', icon: '🎒' },
 ];
 
 export function NavBar() {

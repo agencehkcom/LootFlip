@@ -48,6 +48,37 @@ enum SeasonStatus {
   COMPLETED
 }
 
+enum Currency {
+  GOLD
+  GEM
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+  EXPIRED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum ShopCategory {
+  CHEST
+  CONSUMABLE
+  COSMETIC
+}
+
+enum CosmeticType {
+  TITLE
+  FRAME
+  EFFECT
+}
+
 model User {
   id          String   @id @default(uuid())
   telegramId  String   @unique
@@ -60,12 +91,18 @@ model User {
   league      League   @default(BRONZE)
   createdAt   DateTime @default(now())
 
-  items         Item[]
-  battlesAs1    Battle[]       @relation("player1")
-  battlesAs2    Battle[]       @relation("player2")
-  battlesWon    Battle[]       @relation("winner")
-  chestState    ChestState?
-  seasonRewards SeasonReward[]
+  potionCount Int      @default(0)
+
+  items          Item[]
+  battlesAs1     Battle[]        @relation("player1")
+  battlesAs2     Battle[]        @relation("player2")
+  battlesWon     Battle[]        @relation("winner")
+  chestState     ChestState?
+  seasonRewards  SeasonReward[]
+  listings       MarketListing[] @relation("UserListings")
+  offers         MarketOffer[]   @relation("UserOffers")
+  purchases      Purchase[]
+  cosmetics      Cosmetic[]
 }
 
 model Item {
@@ -77,10 +114,14 @@ model Item {
   rarity      Rarity
   bonusDamage Int
   isEquipped  Boolean   @default(false)
+  isListed    Boolean   @default(false)
   tradeableAt DateTime?
   createdAt   DateTime  @default(now())
 
+  listing MarketListing?
+
   @@index([ownerId])
+  @@index([rarity, trait, type])
 }
 
 model ChestState {
@@ -96,10 +137,12 @@ model Battle {
   player2Id String
   winnerId  String?
   mode      BattleMode
-  goldStake  Int        @default(0)
-  eloChange  Int        @default(0)
-  isBotMatch Boolean    @default(false)
-  roundsData Json
+  goldStake    Int        @default(0)
+  eloChange    Int        @default(0)
+  isBotMatch   Boolean    @default(false)
+  potionUsedP1 Boolean    @default(false)
+  potionUsedP2 Boolean    @default(false)
+  roundsData   Json
   createdAt  DateTime   @default(now())
 
   player1 User  @relation("player1", fields: [player1Id], references: [id])
@@ -135,4 +178,100 @@ model SeasonReward {
 
   @@unique([seasonId, userId])
   @@index([userId])
+}
+
+model MarketListing {
+  id        String        @id @default(cuid())
+  sellerId  String
+  seller    User          @relation("UserListings", fields: [sellerId], references: [id])
+  itemId    String        @unique
+  item      Item          @relation(fields: [itemId], references: [id])
+  price     Int
+  currency  Currency
+  status    ListingStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime      @default(now())
+
+  offers MarketOffer[]
+
+  @@index([sellerId])
+  @@index([status, currency])
+}
+
+model MarketOffer {
+  id         String      @id @default(cuid())
+  listingId  String
+  listing    MarketListing @relation(fields: [listingId], references: [id])
+  buyerId    String
+  buyer      User        @relation("UserOffers", fields: [buyerId], references: [id])
+  offerPrice Int
+  status     OfferStatus @default(PENDING)
+  expiresAt  DateTime
+  createdAt  DateTime    @default(now())
+
+  @@index([listingId])
+  @@index([buyerId])
+}
+
+model ShopItem {
+  id           String       @id @default(cuid())
+  category     ShopCategory
+  name         String       @unique
+  description  String
+  basePrice    Int
+  currency     Currency
+  currentPrice Int
+  isDynamic    Boolean      @default(false)
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+
+  purchases    Purchase[]
+  priceHistory PriceHistory[]
+}
+
+model Purchase {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  shopItemId String
+  shopItem   ShopItem @relation(fields: [shopItemId], references: [id])
+  pricePaid  Int
+  currency   Currency
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([shopItemId])
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  shopItemId String
+  shopItem   ShopItem @relation(fields: [shopItemId], references: [id])
+  price      Int
+  recordedAt DateTime @default(now())
+
+  @@index([shopItemId, recordedAt])
+}
+
+model Cosmetic {
+  id         String       @id @default(cuid())
+  ownerId    String
+  owner      User         @relation(fields: [ownerId], references: [id])
+  type       CosmeticType
+  name       String
+  metadata   Json?
+  equippedAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  @@index([ownerId])
+}
+
+model CraftRecipe {
+  id                String @id @default(cuid())
+  fromRarity        Rarity
+  toRarity          Rarity
+  goldCost          Int
+  materialsRequired Int
+
+  @@unique([fromRarity, toRarity])
 }

@@ -55,4 +55,57 @@ export const api = {
   getSeasonInfo: () => request<any>('/api/season/current'),
   getSeasonRewards: () => request<any[]>('/api/season/rewards'),
   claimRewards: () => request<any>('/api/season/claim', { method: 'POST' }),
+
+  // Phase 3 — Marketplace
+  createListing: (itemId: string, price: number, currency: string) =>
+    request<any>('/api/market/list', {
+      method: 'POST', body: JSON.stringify({ itemId, price, currency }),
+    }),
+  searchListings: (params: Record<string, string | number | undefined> = {}) => {
+    const query = Object.entries(params)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => `${k}=${v}`)
+      .join('&');
+    return request<any>(`/api/market/listings${query ? `?${query}` : ''}`);
+  },
+  getListing: (id: string) => request<any>(`/api/market/listings/${id}`),
+  buyListing: (id: string) =>
+    request<any>(`/api/market/buy/${id}`, { method: 'POST' }),
+  makeOffer: (listingId: string, offerPrice: number) =>
+    request<any>(`/api/market/offer/${listingId}`, {
+      method: 'POST', body: JSON.stringify({ offerPrice }),
+    }),
+  respondToOffer: (offerId: string, accept: boolean) =>
+    request<any>(`/api/market/offer/${offerId}/respond`, {
+      method: 'POST', body: JSON.stringify({ accept }),
+    }),
+  cancelListing: (id: string) =>
+    request<any>(`/api/market/listings/${id}`, { method: 'DELETE' }),
+  getMyListings: () => request<any[]>('/api/market/my-listings'),
+  getMyOffers: () => request<any[]>('/api/market/my-offers'),
+
+  // Phase 3 — Shop
+  getShopItems: () => request<any[]>('/api/shop/items'),
+  buyShopItem: (id: string) =>
+    request<any>(`/api/shop/buy/${id}`, { method: 'POST' }),
+  getPriceHistory: (id: string) =>
+    request<any[]>(`/api/shop/prices/history/${id}`),
+
+  // Phase 3 — Craft
+  getCraftRecipes: () => request<any[]>('/api/craft/recipes'),
+  upgradeItem: (itemId: string, materialIds: string[]) =>
+    request<any>('/api/craft/upgrade', {
+      method: 'POST', body: JSON.stringify({ itemId, materialIds }),
+    }),
+
+  // Phase 3 — Cosmetics
+  getCosmetics: () => request<any[]>('/api/inventory/cosmetics'),
+  equipCosmetic: (cosmeticId: string) =>
+    request<any>('/api/inventory/cosmetics/equip', {
+      method: 'POST', body: JSON.stringify({ cosmeticId }),
+    }),
+  unequipCosmetic: (cosmeticId: string) =>
+    request<any>('/api/inventory/cosmetics/unequip', {
+      method: 'POST', body: JSON.stringify({ cosmeticId }),
+    }),
 };
