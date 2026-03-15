@@ -16,12 +16,17 @@ import { guildRouter } from './modules/guild/guild.routes';
 import { friendRouter } from './modules/friend/friend.routes';
 import { challengeRouter } from './modules/challenge/challenge.routes';
 import { tournamentRouter } from './modules/tournament/tournament.routes';
+import { walletRouter } from './modules/wallet/wallet.routes';
+import { tokenRouter } from './modules/token/token.routes';
+import { stakingRouter } from './modules/staking/staking.routes';
+import { governanceRouter } from './modules/governance/governance.routes';
 import { authMiddleware } from './middleware/auth';
 import { rateLimit } from './middleware/rateLimit';
 import { setupSocket } from './socket';
 import { seedShopItems, seedCraftRecipes, updateDynamicPrices, expireListings, expireOffers } from './modules/pricing/pricing.service';
 import { resolveWars } from './modules/tournament/tournament.service';
 import { expireChallenges } from './modules/challenge/challenge.service';
+import { resolveExpiredProposals } from './modules/governance/governance.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -48,6 +53,10 @@ app.use('/api/guild', authMiddleware, guildRouter);
 app.use('/api/friends', authMiddleware, friendRouter);
 app.use('/api/challenge', authMiddleware, challengeRouter);
 app.use('/api/tournament', authMiddleware, tournamentRouter);
+app.use('/api/wallet', authMiddleware, walletRouter);
+app.use('/api/token', authMiddleware, tokenRouter);
+app.use('/api/staking', authMiddleware, stakingRouter);
+app.use('/api/governance', authMiddleware, governanceRouter);
 
 // Socket.io
 setupSocket(io);
@@ -64,6 +73,7 @@ async function bootstrap() {
     await expireOffers();
     await resolveWars();
     await expireChallenges();
+    await resolveExpiredProposals();
   }, 3_600_000);
 }
 

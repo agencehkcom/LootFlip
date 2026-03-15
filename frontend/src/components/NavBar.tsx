@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { href: '/battle', label: 'Arene', icon: '⚔️' },
   { href: '/market', label: 'Marche', icon: '🏪' },
   { href: '/guild', label: 'Guilde', icon: '🏰' },
-  { href: '/friends', label: 'Social', icon: '👥' },
+  { href: '/wallet', label: 'Wallet', icon: '💎' },
 ];
 
 export function NavBar() {

@@ -111,6 +111,45 @@ enum ChallengeStatus {
   COMPLETED
 }
 
+// Phase 5 — Token
+enum WalletType {
+  CUSTODIAL
+  EXTERNAL
+}
+
+enum TokenTxType {
+  WITHDRAW
+  DEPOSIT
+  BURN
+  STAKE
+  UNSTAKE
+}
+
+enum TokenTxStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum ProposalStatus {
+  ACTIVE
+  PASSED
+  REJECTED
+  EXPIRED
+}
+
+enum ProposalCategory {
+  GAMEPLAY
+  CONTENT
+  ECONOMY
+}
+
+enum BurnSource {
+  MARKETPLACE
+  SHOP
+  BUYBACK
+}
+
 model User {
   id          String   @id @default(uuid())
   telegramId  String   @unique
@@ -145,6 +184,12 @@ model User {
   opponentOf           RecentOpponent[]  @relation("OpponentOf")
   challengesSent       Challenge[]       @relation("ChallengesSent")
   challengesReceived   Challenge[]       @relation("ChallengesReceived")
+  // Phase 5 — Token
+  wallet               Wallet?
+  tokenTransactions    TokenTransaction[]
+  stakePositions       StakePosition[]
+  governanceVotes      GovernanceVote[]
+  governanceProposals  GovernanceProposal[]
 }
 
 model Item {
@@ -460,4 +505,84 @@ model Challenge {
 
   @@index([challengerId])
   @@index([challengedId])
+}
+
+// ── Phase 5: Token $GEM ──
+
+model Wallet {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  type         WalletType
+  address      String
+  encryptedKey String?
+  connectedAt  DateTime   @default(now())
+}
+
+model TokenTransaction {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  type          TokenTxType
+  amount        Int
+  status        TokenTxStatus @default(PENDING)
+  txHash        String?
+  walletAddress String
+  createdAt     DateTime      @default(now())
+
+  @@index([userId])
+}
+
+model StakePosition {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  amount       Int
+  lockDays     Int
+  apy          Float
+  startedAt    DateTime  @default(now())
+  unlocksAt    DateTime
+  claimedAt    DateTime?
+  rewardAmount Int       @default(0)
+
+  @@index([userId])
+}
+
+model GovernanceProposal {
+  id             String           @id @default(cuid())
+  title          String
+  description    String
+  category       ProposalCategory
+  options        Json
+  creatorId      String
+  creator        User             @relation(fields: [creatorId], references: [id])
+  status         ProposalStatus   @default(ACTIVE)
+  startsAt       DateTime         @default(now())
+  endsAt         DateTime
+  quorumRequired Int
+  createdAt      DateTime         @default(now())
+
+  votes GovernanceVote[]
+}
+
+model GovernanceVote {
+  id          String             @id @default(cuid())
+  proposalId  String
+  proposal    GovernanceProposal @relation(fields: [proposalId], references: [id])
+  userId      String
+  user        User               @relation(fields: [userId], references: [id])
+  optionIndex Int
+  votingPower Int
+  createdAt   DateTime           @default(now())
+
+  @@unique([proposalId, userId])
+  @@index([proposalId])
+}
+
+model BurnRecord {
+  id        String     @id @default(cuid())
+  amount    Int
+  source    BurnSource
+  txHash    String?
+  createdAt DateTime   @default(now())
 }

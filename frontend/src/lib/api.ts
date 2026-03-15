@@ -157,4 +157,36 @@ export const api = {
   respondToChallenge: (id: string, accept: boolean) =>
     request<any>(`/api/challenge/${id}/respond`, { method: 'POST', body: JSON.stringify({ accept }) }),
   getPendingChallenges: () => request<any[]>('/api/challenge/pending'),
+
+  // Phase 5 — Wallet
+  createWallet: () => request<any>('/api/wallet/create', { method: 'POST' }),
+  connectWallet: (address: string) =>
+    request<any>('/api/wallet/connect', { method: 'POST', body: JSON.stringify({ address }) }),
+  getWalletInfo: () => request<any>('/api/wallet/info'),
+  disconnectWallet: () => request<any>('/api/wallet/disconnect', { method: 'POST' }),
+
+  // Phase 5 — Token
+  withdrawGem: (amount: number) =>
+    request<any>('/api/token/withdraw', { method: 'POST', body: JSON.stringify({ amount }) }),
+  confirmDeposit: (amount: number, txHash: string) =>
+    request<any>('/api/token/deposit/confirm', { method: 'POST', body: JSON.stringify({ amount, txHash }) }),
+  getTokenTransactions: () => request<any[]>('/api/token/transactions'),
+  getTokenStats: () => request<any>('/api/token/stats'),
+
+  // Phase 5 — Staking
+  stakeGem: (amount: number, lockDays: number) =>
+    request<any>('/api/staking/stake', { method: 'POST', body: JSON.stringify({ amount, lockDays }) }),
+  unstakeGem: (id: string) => request<any>(`/api/staking/unstake/${id}`, { method: 'POST' }),
+  claimStakeRewards: (id: string) => request<any>(`/api/staking/claim/${id}`, { method: 'POST' }),
+  getStakePositions: () => request<any[]>('/api/staking/positions'),
+  getStakingInfo: () => request<any>('/api/staking/info'),
+
+  // Phase 5 — Governance
+  createProposal: (title: string, description: string, category: string, options: string[]) =>
+    request<any>('/api/governance/propose', { method: 'POST', body: JSON.stringify({ title, description, category, options }) }),
+  voteOnProposal: (id: string, optionIndex: number) =>
+    request<any>(`/api/governance/vote/${id}`, { method: 'POST', body: JSON.stringify({ optionIndex }) }),
+  getProposals: (status?: string) =>
+    request<any[]>(`/api/governance/proposals${status ? `?status=${status}` : ''}`),
+  getProposal: (id: string) => request<any>(`/api/governance/proposals/${id}`),
 };
