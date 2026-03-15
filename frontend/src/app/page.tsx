@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { HeroDisplay } from '@/components/HeroDisplay';
@@ -20,6 +21,7 @@ const QUEST_REWARDS: Record<string, string> = {
 };
 
 export default function HubPage() {
+  const router = useRouter();
   const { user, loading, isNewUser, error: authError } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [rewards, setRewards] = useState<any[]>([]);
@@ -29,12 +31,18 @@ export default function HubPage() {
 
   useEffect(() => {
     if (user) {
-      api.getUser().then(setProfile).catch(console.error);
+      api.getUser().then(p => {
+        setProfile(p);
+        // Redirect new users to onboarding
+        if (!p.hasCompletedTutorial) {
+          router.push('/onboarding');
+        }
+      }).catch(console.error);
       api.getSeasonRewards().then(setRewards).catch(() => {});
       api.getDailyQuests().then(setQuests).catch(() => {});
       api.getReferralInfo().then(setReferralInfo).catch(() => {});
     }
-  }, [user]);
+  }, [user, router]);
 
   async function handleClaim() {
     await api.claimRewards();

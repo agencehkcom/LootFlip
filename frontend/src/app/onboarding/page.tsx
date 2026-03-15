@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 const SLIDES = [
   { title: 'Bienvenue dans Loot Flip Arena !', description: 'Un jeu PvP ou tu combats pour du loot et des $GEM.', icon: '⚔️' },
@@ -13,11 +14,18 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
 
+  async function completeTutorial() {
+    try {
+      await api.completeTutorial();
+    } catch {}
+    router.push('/');
+  }
+
   function handleNext() {
     if (step < SLIDES.length - 1) {
       setStep(step + 1);
     } else {
-      router.push('/');
+      completeTutorial();
     }
   }
 
@@ -49,7 +57,7 @@ export default function OnboardingPage() {
       )}
 
       {step < SLIDES.length - 1 && (
-        <button onClick={() => router.push('/')}
+        <button onClick={completeTutorial}
           className="mt-3 text-gray-500 text-xs">
           Passer
         </button>

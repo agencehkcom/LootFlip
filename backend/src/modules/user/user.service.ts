@@ -38,5 +38,8 @@ export async function getUserProfile(userId: string) {
     equippedItems: user.items,
     chestStock,
     nextChestAt,
+    hasCompletedTutorial: user.hasCompletedTutorial,
+    prestigeLevel: user.prestigeLevel,
+    potionCount: user.potionCount,
   };
 }

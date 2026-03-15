@@ -15,6 +15,18 @@ userRouter.get('/', async (req, res) => {
   }
 });
 
+userRouter.post('/complete-tutorial', async (req, res) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { hasCompletedTutorial: true },
+    });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 userRouter.get('/leaderboard', async (req, res) => {
   const league = req.query.league as string | undefined;
   const where = league ? { league: league as any } : {};

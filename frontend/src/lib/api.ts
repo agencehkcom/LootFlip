@@ -40,6 +40,7 @@ export const api = {
       method: 'POST', body: JSON.stringify({ username }),
     }),
   getUser: () => request<any>('/api/user'),
+  completeTutorial: () => request<any>('/api/user/complete-tutorial', { method: 'POST' }),
   openChest: (isPremium = false) =>
     request<any>('/api/chest/open', {
       method: 'POST', body: JSON.stringify({ isPremium }),
