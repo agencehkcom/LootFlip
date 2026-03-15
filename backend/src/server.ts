@@ -42,7 +42,10 @@ const io = new Server(httpServer, {
   cors: { origin: '*' },
 });
 
-app.use(cors());
+app.use(cors({
+  origin: ENV.NODE_ENV === 'production' ? [ENV.FRONTEND_URL, 'https://lootflip.vercel.app'] : '*',
+  credentials: true,
+}));
 app.use(express.json());
 
 // Public routes
