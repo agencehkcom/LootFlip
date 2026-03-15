@@ -62,7 +62,10 @@ export default function InventoryPage() {
   const unequipped = items.filter(i => !i.isEquipped && !i.isListed);
 
   return (
-    <div className="pb-20 px-4 pt-4 min-h-screen bg-gray-900 text-white">
+    <div className="pb-20 px-4 pt-4 min-h-screen text-white relative">
+      <div className="fixed inset-0 -z-10">
+        <img src="/assets/backgrounds/bg-inventory.png" alt="" className="w-full h-full object-cover" />
+      </div>
       <h1 className="text-xl font-bold mb-4">Inventaire</h1>
 
       {message && (

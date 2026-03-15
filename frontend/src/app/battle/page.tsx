@@ -74,7 +74,10 @@ export default function BattlePage() {
   };
 
   return (
-    <div className="pb-20 px-4 pt-4 min-h-screen flex flex-col">
+    <div className="pb-20 px-4 pt-4 min-h-screen flex flex-col relative">
+      <div className="fixed inset-0 -z-10">
+        <img src="/assets/backgrounds/bg-battle.png" alt="" className="w-full h-full object-cover" />
+      </div>
       {phase === 'idle' && (
         <div className="flex-1 flex flex-col items-center justify-center">
           <span className="text-6xl mb-6">⚔️</span>

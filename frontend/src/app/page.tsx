@@ -83,7 +83,10 @@ export default function HubPage() {
   }
 
   return (
-    <div className="pb-20 px-4 pt-4 min-h-screen bg-gray-900 text-white">
+    <div className="pb-20 px-4 pt-4 min-h-screen text-white relative">
+      <div className="fixed inset-0 -z-10">
+        <img src="/assets/backgrounds/bg-hub.png" alt="" className="w-full h-full object-cover" />
+      </div>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-bold">Loot Flip Arena</h1>
         <div className="flex gap-3 text-sm">
