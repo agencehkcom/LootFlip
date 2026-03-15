@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY shared/package.json shared/
 COPY backend/package.json backend/
+COPY frontend/package.json frontend/
 COPY prisma/ prisma/
 
 RUN npm ci
