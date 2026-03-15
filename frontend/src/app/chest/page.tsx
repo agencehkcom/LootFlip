@@ -51,11 +51,21 @@ export default function ChestPage() {
   }
 
   return (
-    <div className="pb-20 px-4 pt-4">
+    <div className="pb-20 px-4 pt-4 min-h-screen text-white relative">
+      <div className="fixed inset-0 -z-10">
+        <img src="/assets/backgrounds/bg-chest.png" alt="" className="w-full h-full object-cover" />
+      </div>
+
       <h1 className="text-xl font-bold mb-4">Coffres</h1>
 
       <div className="text-center mb-6">
-        <div className="text-6xl mb-4">{opening ? '✨' : '🎁'}</div>
+        <div className="mb-4">
+          <img
+            src="/assets/items/chest-standard.png"
+            alt="Coffre"
+            className={`w-40 h-40 mx-auto object-contain ${opening ? 'animate-bounce' : ''}`}
+          />
+        </div>
         <div className="text-lg mb-2">{stock}/5 coffres disponibles</div>
         {stock < 5 && nextChestAt && (
           <div className="text-sm text-gray-400">Prochain dans {timeLeft}</div>
