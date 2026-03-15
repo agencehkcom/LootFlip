@@ -12,10 +12,16 @@ import { seasonRouter } from './modules/season/season.routes';
 import { marketRouter } from './modules/marketplace/marketplace.routes';
 import { shopRouter } from './modules/shop/shop.routes';
 import { craftRouter } from './modules/craft/craft.routes';
+import { guildRouter } from './modules/guild/guild.routes';
+import { friendRouter } from './modules/friend/friend.routes';
+import { challengeRouter } from './modules/challenge/challenge.routes';
+import { tournamentRouter } from './modules/tournament/tournament.routes';
 import { authMiddleware } from './middleware/auth';
 import { rateLimit } from './middleware/rateLimit';
 import { setupSocket } from './socket';
 import { seedShopItems, seedCraftRecipes, updateDynamicPrices, expireListings, expireOffers } from './modules/pricing/pricing.service';
+import { resolveWars } from './modules/tournament/tournament.service';
+import { expireChallenges } from './modules/challenge/challenge.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -38,6 +44,10 @@ app.use('/api/season', authMiddleware, seasonRouter);
 app.use('/api/market', authMiddleware, rateLimit(30, 60), marketRouter);
 app.use('/api/shop', authMiddleware, rateLimit(20, 60), shopRouter);
 app.use('/api/craft', authMiddleware, rateLimit(10, 60), craftRouter);
+app.use('/api/guild', authMiddleware, guildRouter);
+app.use('/api/friends', authMiddleware, friendRouter);
+app.use('/api/challenge', authMiddleware, challengeRouter);
+app.use('/api/tournament', authMiddleware, tournamentRouter);
 
 // Socket.io
 setupSocket(io);
@@ -52,6 +62,8 @@ async function bootstrap() {
     await updateDynamicPrices();
     await expireListings();
     await expireOffers();
+    await resolveWars();
+    await expireChallenges();
   }, 3_600_000);
 }
 

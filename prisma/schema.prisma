@@ -79,6 +79,38 @@ enum CosmeticType {
   EFFECT
 }
 
+enum GuildRole {
+  LEADER
+  CO_LEADER
+  OFFICER
+  MEMBER
+}
+
+enum WarStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+enum TournamentStatus {
+  REGISTERING
+  ACTIVE
+  COMPLETED
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ChallengeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
 model User {
   id          String   @id @default(uuid())
   telegramId  String   @unique
@@ -103,6 +135,16 @@ model User {
   offers         MarketOffer[]   @relation("UserOffers")
   purchases      Purchase[]
   cosmetics      Cosmetic[]
+  // Phase 4 — Social
+  guildMember          GuildMember?
+  guildDonations       GuildDonation[]
+  guildChatMessages    GuildChatMessage[]
+  friendshipsRequested Friendship[]      @relation("FriendshipRequester")
+  friendshipsReceived  Friendship[]      @relation("FriendshipReceiver")
+  recentOpponents      RecentOpponent[]  @relation("UserRecentOpponents")
+  opponentOf           RecentOpponent[]  @relation("OpponentOf")
+  challengesSent       Challenge[]       @relation("ChallengesSent")
+  challengesReceived   Challenge[]       @relation("ChallengesReceived")
 }
 
 model Item {
@@ -119,6 +161,8 @@ model Item {
   createdAt   DateTime  @default(now())
 
   listing MarketListing?
+  guildId String?
+  guild   Guild?    @relation("GuildItems", fields: [guildId], references: [id])
 
   @@index([ownerId])
   @@index([rarity, trait, type])
@@ -274,4 +318,146 @@ model CraftRecipe {
   materialsRequired Int
 
   @@unique([fromRarity, toRarity])
+}
+
+// ── Phase 4: Social / Guildes ──
+
+model Guild {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  description  String   @default("")
+  leaderId     String
+  goldTreasury Int      @default(0)
+  gemTreasury  Int      @default(0)
+  trophies     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  members          GuildMember[]
+  announcements    GuildAnnouncement[]
+  donations        GuildDonation[]
+  chatMessages     GuildChatMessage[]
+  warsAsChallenger GuildWar[]  @relation("WarChallenger")
+  warsAsDefender   GuildWar[]  @relation("WarDefender")
+  guildItems       Item[]      @relation("GuildItems")
+}
+
+model GuildMember {
+  id       String    @id @default(cuid())
+  guildId  String
+  guild    Guild     @relation(fields: [guildId], references: [id])
+  userId   String    @unique
+  user     User      @relation(fields: [userId], references: [id])
+  role     GuildRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  @@unique([guildId, userId])
+  @@index([guildId])
+}
+
+model GuildAnnouncement {
+  id        String   @id @default(cuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id])
+  authorId  String
+  content   String
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([guildId])
+}
+
+model GuildDonation {
+  id         String   @id @default(cuid())
+  guildId    String
+  guild      Guild    @relation(fields: [guildId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  goldAmount Int      @default(0)
+  gemAmount  Int      @default(0)
+  itemId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([guildId])
+  @@index([userId])
+}
+
+model GuildWar {
+  id                String    @id @default(cuid())
+  challengerGuildId String
+  challengerGuild   Guild     @relation("WarChallenger", fields: [challengerGuildId], references: [id])
+  defenderGuildId   String
+  defenderGuild     Guild     @relation("WarDefender", fields: [defenderGuildId], references: [id])
+  status            WarStatus @default(PENDING)
+  challengerWins    Int       @default(0)
+  defenderWins      Int       @default(0)
+  winnerId          String?
+  startsAt          DateTime?
+  endsAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([challengerGuildId])
+  @@index([defenderGuildId])
+}
+
+model GuildTournament {
+  id        String           @id @default(cuid())
+  weekStart DateTime         @unique
+  bracket   Json
+  status    TournamentStatus @default(REGISTERING)
+  winnerId  String?
+  createdAt DateTime         @default(now())
+}
+
+model GuildChatMessage {
+  id        String   @id @default(cuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, createdAt])
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id])
+  receiverId  String
+  receiver    User             @relation("FriendshipReceiver", fields: [receiverId], references: [id])
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  @@unique([requesterId, receiverId])
+  @@index([receiverId])
+}
+
+model RecentOpponent {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("UserRecentOpponents", fields: [userId], references: [id])
+  opponentId String
+  opponent   User     @relation("OpponentOf", fields: [opponentId], references: [id])
+  battleId   String
+  foughtAt   DateTime @default(now())
+
+  @@unique([userId, opponentId])
+  @@index([userId])
+}
+
+model Challenge {
+  id           String          @id @default(cuid())
+  challengerId String
+  challenger   User            @relation("ChallengesSent", fields: [challengerId], references: [id])
+  challengedId String
+  challenged   User            @relation("ChallengesReceived", fields: [challengedId], references: [id])
+  goldStake    Int
+  status       ChallengeStatus @default(PENDING)
+  battleId     String?
+  expiresAt    DateTime
+  createdAt    DateTime        @default(now())
+
+  @@index([challengerId])
+  @@index([challengedId])
 }

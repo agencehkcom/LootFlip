@@ -8,6 +8,8 @@ export * from './types/market';
 export * from './types/shop';
 export * from './types/cosmetic';
 export * from './types/craft';
+export * from './types/guild';
+export * from './types/friend';
 export * from './constants/game';
 export * from './utils/combat';
 export * from './utils/elo';

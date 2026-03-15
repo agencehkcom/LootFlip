@@ -35,6 +35,10 @@ export const api = {
     request<{ token: string; user: any; isNewUser: boolean }>('/api/auth', {
       method: 'POST', body: JSON.stringify({ initData }),
     }),
+  devAuth: (username: string) =>
+    request<{ token: string; user: any; isNewUser: boolean }>('/api/auth/dev', {
+      method: 'POST', body: JSON.stringify({ username }),
+    }),
   getUser: () => request<any>('/api/user'),
   openChest: (isPremium = false) =>
     request<any>('/api/chest/open', {
@@ -108,4 +112,49 @@ export const api = {
     request<any>('/api/inventory/cosmetics/unequip', {
       method: 'POST', body: JSON.stringify({ cosmeticId }),
     }),
+
+  // Phase 4 — Guild
+  createGuild: (name: string, description: string) =>
+    request<any>('/api/guild/create', { method: 'POST', body: JSON.stringify({ name, description }) }),
+  getMyGuild: () => request<any>('/api/guild/my'),
+  getGuild: (id: string) => request<any>(`/api/guild/${id}`),
+  searchGuilds: (q: string) => request<any[]>(`/api/guild/search?q=${encodeURIComponent(q)}`),
+  getGuildLeaderboard: () => request<any[]>('/api/guild/leaderboard'),
+  joinGuild: (id: string) => request<any>(`/api/guild/${id}/join`, { method: 'POST' }),
+  leaveGuild: (id: string) => request<any>(`/api/guild/${id}/leave`, { method: 'POST' }),
+  kickMember: (guildId: string, targetUserId: string) =>
+    request<any>(`/api/guild/${guildId}/kick`, { method: 'POST', body: JSON.stringify({ targetUserId }) }),
+  promoteMember: (guildId: string, targetUserId: string) =>
+    request<any>(`/api/guild/${guildId}/promote`, { method: 'POST', body: JSON.stringify({ targetUserId }) }),
+  demoteMember: (guildId: string, targetUserId: string) =>
+    request<any>(`/api/guild/${guildId}/demote`, { method: 'POST', body: JSON.stringify({ targetUserId }) }),
+  donate: (guildId: string, goldAmount: number, gemAmount: number, itemId?: string) =>
+    request<any>(`/api/guild/${guildId}/donate`, { method: 'POST', body: JSON.stringify({ goldAmount, gemAmount, itemId }) }),
+  postAnnouncement: (guildId: string, content: string, isPinned: boolean) =>
+    request<any>(`/api/guild/${guildId}/announce`, { method: 'POST', body: JSON.stringify({ content, isPinned }) }),
+  declareWar: (guildId: string, defenderGuildId: string) =>
+    request<any>('/api/tournament/war/declare', { method: 'POST', body: JSON.stringify({ guildId, defenderGuildId }) }),
+  respondToWar: (warId: string, accept: boolean) =>
+    request<any>(`/api/tournament/war/${warId}/respond`, { method: 'POST', body: JSON.stringify({ accept }) }),
+  getWar: (warId: string) => request<any>(`/api/tournament/war/${warId}`),
+  getCurrentTournament: () => request<any>('/api/tournament/current'),
+  registerForTournament: (guildId: string) =>
+    request<any>('/api/tournament/register', { method: 'POST', body: JSON.stringify({ guildId }) }),
+
+  // Phase 4 — Friends
+  getFriends: () => request<any[]>('/api/friends'),
+  getFriendRequests: () => request<any[]>('/api/friends/requests'),
+  sendFriendRequest: (userId: string) =>
+    request<any>('/api/friends/request', { method: 'POST', body: JSON.stringify({ userId }) }),
+  respondToFriendRequest: (friendshipId: string, accept: boolean) =>
+    request<any>('/api/friends/respond', { method: 'POST', body: JSON.stringify({ friendshipId, accept }) }),
+  removeFriend: (id: string) => request<any>(`/api/friends/${id}`, { method: 'DELETE' }),
+  getRecentOpponents: () => request<any[]>('/api/friends/recent'),
+
+  // Phase 4 — Challenges
+  sendChallenge: (friendId: string, goldStake: number) =>
+    request<any>('/api/challenge/send', { method: 'POST', body: JSON.stringify({ friendId, goldStake }) }),
+  respondToChallenge: (id: string, accept: boolean) =>
+    request<any>(`/api/challenge/${id}/respond`, { method: 'POST', body: JSON.stringify({ accept }) }),
+  getPendingChallenges: () => request<any[]>('/api/challenge/pending'),
 };

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { api, setToken } from '@/lib/api';
+import { api, setToken, getToken } from '@/lib/api';
 import { useTelegram } from './useTelegram';
 
 export function useAuth() {
@@ -10,16 +10,46 @@ export function useAuth() {
   const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
-    if (!initData) {
-      if (process.env.NODE_ENV === 'development') setLoading(false);
+    // If already have a token, try to fetch user
+    const existingToken = getToken();
+    if (existingToken) {
+      api.getUser().then(u => {
+        setUser(u);
+        setLoading(false);
+      }).catch(() => {
+        // Token expired, clear and retry
+        localStorage.removeItem('token');
+        tryAuth();
+      });
       return;
     }
-    api.auth(initData).then(res => {
-      setToken(res.token);
-      setUser(res.user);
-      setIsNewUser(res.isNewUser);
+
+    tryAuth();
+
+    async function tryAuth() {
+      // Telegram auth
+      if (initData) {
+        try {
+          const res = await api.auth(initData);
+          setToken(res.token);
+          setUser(res.user);
+          setIsNewUser(res.isNewUser);
+        } catch {}
+        setLoading(false);
+        return;
+      }
+
+      // Dev mode auto-login
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const res = await api.devAuth('TestPlayer');
+          setToken(res.token);
+          setUser(res.user);
+          setIsNewUser(res.isNewUser);
+        } catch {}
+      }
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }
   }, [initData]);
 
   return { user, loading, isNewUser };

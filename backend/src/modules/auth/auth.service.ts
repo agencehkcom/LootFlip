@@ -65,3 +65,28 @@ export async function authenticateUser(initData: string, botToken: string, jwtSe
   const token = createJwt({ userId: user.id, telegramId }, jwtSecret);
   return { token, user, isNewUser };
 }
+
+export async function devAuthenticate(username: string, jwtSecret: string) {
+  const telegramId = `dev_${username.toLowerCase().replace(/\s+/g, '_')}`;
+
+  let user = await prisma.user.findUnique({ where: { telegramId } });
+  let isNewUser = false;
+
+  if (!user) {
+    isNewUser = true;
+    user = await prisma.user.create({
+      data: {
+        telegramId,
+        username,
+        displayName: username,
+        goldBalance: 5000,
+        chestState: {
+          create: { stock: 5, nextFreeAt: new Date() },
+        },
+      },
+    });
+  }
+
+  const token = createJwt({ userId: user.id, telegramId }, jwtSecret);
+  return { token, user, isNewUser };
+}
