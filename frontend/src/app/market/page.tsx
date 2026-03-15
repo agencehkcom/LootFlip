@@ -88,7 +88,10 @@ export default function MarketPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white pb-20 p-4">
+    <main className="min-h-screen text-white pb-20 p-4 relative">
+      <div className="fixed inset-0 -z-10">
+        <img src="/assets/backgrounds/bg-market.png" alt="" className="w-full h-full object-cover" />
+      </div>
       <h1 className="text-2xl font-bold text-center mb-4">🏪 Marketplace</h1>
 
       {message && (
